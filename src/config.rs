@@ -25,9 +25,9 @@ pub struct PerformanceConfig {
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
-    pub auth:        Option<AuthConfig>,
-    pub output:      Option<OutputConfig>,
-    pub download:    Option<DownloadConfig>,
+    pub auth: Option<AuthConfig>,
+    pub output: Option<OutputConfig>,
+    pub download: Option<DownloadConfig>,
     pub performance: Option<PerformanceConfig>,
 }
 
@@ -46,5 +46,16 @@ impl Config {
             .join("fumi")
             .join("config.toml");
         Ok(dir)
+    }
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            auth: None,
+            output: None,
+            download: None,
+            performance: None,
+        }
     }
 }

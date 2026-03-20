@@ -7,7 +7,6 @@ use tokio_util::sync::CancellationToken;
 use crate::{
     app::RepoTarget,
     event::{AppCommand, WorkerEvent},
-    github::GithubEntry,
 };
 
 pub mod api;
