@@ -11,5 +11,6 @@ use anyhow::Result;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    todo!("bootstrap")
+    println!("fumi bootstrap placeholder");
+    Ok(())
 }
