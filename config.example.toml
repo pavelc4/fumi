@@ -1,0 +1,11 @@
+[auth]
+token = ""
+
+[output]
+dir ="~/Downloads"
+
+[Downloads]
+concurrency = 4
+
+[performance]
+tree_strategy_threshold = 1000
