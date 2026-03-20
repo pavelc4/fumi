@@ -125,6 +125,9 @@ async fn handle_key(
         Browse | Downloading => match key.code {
             KeyCode::Char('q') | KeyCode::Esc => return Ok(true),
             KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => return Ok(true),
+            KeyCode::Char('b') => {
+                app.mode = AppMode::Input;
+            }
 
             KeyCode::Char('j') | KeyCode::Down => {
                 let max = current_entries_len(app).saturating_sub(1);
@@ -241,9 +244,41 @@ async fn handle_key(
             _ => {}
         },
 
-        Input => {
-            // TODO: handle repo input (next step)
-        }
+        Input => match key.code {
+            KeyCode::Esc => {
+                if app.target.owner.is_empty() {
+                    return Ok(true);
+                }
+                app.input_buffer.clear();
+                app.mode = AppMode::Browse;
+            }
+
+            KeyCode::Char(c) => {
+                app.input_buffer.push(c);
+            }
+
+            KeyCode::Backspace => {
+                app.input_buffer.pop();
+            }
+
+            KeyCode::Enter => {
+                if let Some(target) = parse_input(&app.input_buffer) {
+                    app.target = target;
+                    app.input_buffer = String::new();
+                    app.tree.clear();
+                    app.selected.clear();
+                    app.downloads.clear();
+                    app.current_path = String::new();
+                    app.cursor = 0;
+                    app.mode = AppMode::Browse;
+
+                    app.tree.insert(String::new(), NodeState::Loading);
+                    cmd_tx.send(AppCommand::FetchDir(String::new())).await.ok();
+                }
+            }
+
+            _ => {}
+        },
     }
 
     Ok(false)
@@ -280,6 +315,7 @@ fn handle_worker_event(app: &mut App, ev: WorkerEvent) {
         }
 
         WorkerEvent::Error { id: _, msg } => {
+            eprintln!("[error] {}", msg);
             app.mode = AppMode::Error(msg);
         }
     }
@@ -307,6 +343,24 @@ fn parse_args() -> Option<RepoTarget> {
         (arg.as_str(), String::from("main"))
     };
     let (owner, repo) = repo_part.split_once('/')?;
+    Some(RepoTarget {
+        owner: owner.to_string(),
+        repo: repo.to_string(),
+        branch,
+    })
+}
+
+fn parse_input(s: &str) -> Option<RepoTarget> {
+    let s = s.trim();
+    let (repo_part, branch) = if let Some((r, b)) = s.split_once('@') {
+        (r, b.to_string())
+    } else {
+        (s, String::from("main"))
+    };
+    let (owner, repo) = repo_part.split_once('/')?;
+    if owner.is_empty() || repo.is_empty() {
+        return None;
+    }
     Some(RepoTarget {
         owner: owner.to_string(),
         repo: repo.to_string(),

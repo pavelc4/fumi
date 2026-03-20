@@ -1,13 +1,14 @@
 use anyhow::Result;
 use ratatui::{
+    Terminal,
     backend::Backend,
     layout::{Constraint, Direction, Layout},
-    Terminal,
 };
 
 use crate::app::App;
 
 pub mod filetree;
+pub mod input;
 pub mod preview;
 pub mod statusbar;
 
@@ -31,6 +32,10 @@ where
         filetree::render(frame, app, cols[0]);
         preview::render(frame, app, cols[1]);
         statusbar::render(frame, app, rows[1]);
+
+        if matches!(app.mode, crate::app::AppMode::Input) {
+            input::render(frame, app, area)
+        }
     })?;
     Ok(())
 }

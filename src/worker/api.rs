@@ -25,14 +25,13 @@ pub async fn fetch_dir(client: &Client, target: &RepoTarget, path: &str, tx: Sen
         target.owner, target.repo, path, target.branch
     );
 
-    let result = client
+    let resp = match client
         .get(&url)
         .header("User-Agent", "fumi")
         .header("Accept", "application/vnd.github+json")
         .send()
-        .await;
-
-    match result {
+        .await
+    {
         Err(e) => {
             tx.send(WorkerEvent::Error {
                 id: 0,
@@ -40,46 +39,80 @@ pub async fn fetch_dir(client: &Client, target: &RepoTarget, path: &str, tx: Sen
             })
             .await
             .ok();
+            return;
         }
-        Ok(resp) => match resp.json::<Vec<ApiEntry>>().await {
-            Err(e) => {
-                tx.send(WorkerEvent::Error {
-                    id: 0,
-                    msg: e.to_string(),
-                })
-                .await
-                .ok();
-            }
-            Ok(raw) => {
-                let entries = raw
-                    .into_iter()
-                    .map(|e| GithubEntry {
-                        name: e.name,
-                        path: e.path.clone(),
-                        sha: e.sha,
-                        size: e.size.unwrap_or(0),
-                        entry_type: if e.entry_type == "dir" {
-                            EntryType::Dir
-                        } else {
-                            EntryType::File
-                        },
-                        Download_Url: e.download_url,
-                    })
-                    .collect();
+        Ok(r) => r,
+    };
 
-                tx.send(WorkerEvent::DirLoaded {
-                    path: path.to_string(),
-                    entries,
+    // debug: log status + raw body dulu
+    let status = resp.status();
+    let body = match resp.text().await {
+        Err(e) => {
+            tx.send(WorkerEvent::Error {
+                id: 0,
+                msg: e.to_string(),
+            })
+            .await
+            .ok();
+            return;
+        }
+        Ok(b) => b,
+    };
+
+    eprintln!(
+        "[api] status={} body={}",
+        status,
+        &body[..body.len().min(300)]
+    );
+
+    if !status.is_success() {
+        tx.send(WorkerEvent::Error {
+            id: 0,
+            msg: format!("HTTP {}: {}", status, body),
+        })
+        .await
+        .ok();
+        return;
+    }
+
+    match serde_json::from_str::<Vec<ApiEntry>>(&body) {
+        Err(e) => {
+            tx.send(WorkerEvent::Error {
+                id: 0,
+                msg: format!("parse error: {e}"),
+            })
+            .await
+            .ok();
+        }
+        Ok(raw) => {
+            let entries = raw
+                .into_iter()
+                .map(|e| GithubEntry {
+                    name: e.name,
+                    path: e.path,
+                    sha: e.sha,
+                    size: e.size.unwrap_or(0),
+                    entry_type: if e.entry_type == "dir" {
+                        EntryType::Dir
+                    } else {
+                        EntryType::File
+                    },
+                    download_url: e.download_url,
                 })
-                .await
-                .ok();
-            }
-        },
+                .collect();
+
+            tx.send(WorkerEvent::DirLoaded {
+                path: path.to_string(),
+                entries,
+            })
+            .await
+            .ok();
+        }
     }
 }
 
 pub async fn fetch_preview(client: &Client, entry: GithubEntry, tx: Sender<WorkerEvent>) {
-    let url = match &entry.Download_Url {
+    let url = match &entry.download_url {
         Some(u) => u.clone(),
         None => {
             tx.send(WorkerEvent::Error {

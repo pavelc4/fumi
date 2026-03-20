@@ -35,7 +35,7 @@ async fn run(
     token: &CancellationToken,
 ) -> Result<()> {
     let url = entry
-        .Download_Url
+        .download_url
         .as_ref()
         .ok_or_else(|| anyhow::anyhow!("no download_url for {}", entry.path))?;
 

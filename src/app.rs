@@ -34,23 +34,24 @@ pub enum TreeStrategy {
 
 #[derive(Debug, Clone)]
 pub struct RepoTarget {
-    pub owner:  String,
-    pub repo:   String,
+    pub owner: String,
+    pub repo: String,
     pub branch: String,
 }
 
 #[derive(Debug)]
 pub struct App {
-    pub target:       RepoTarget,
-    pub tree:         HashMap<String, NodeState>,
-    pub cursor:       usize,
-    pub scroll:       usize,
-    pub selected:     HashSet<String>,
-    pub downloads:    HashMap<u64, DownloadState>,
-    pub preview:      Option<String>,
-    pub mode:         AppMode,
-    pub strategy:     TreeStrategy,
+    pub target: RepoTarget,
+    pub tree: HashMap<String, NodeState>,
+    pub cursor: usize,
+    pub scroll: usize,
+    pub selected: HashSet<String>,
+    pub downloads: HashMap<u64, DownloadState>,
+    pub preview: Option<String>,
+    pub mode: AppMode,
+    pub strategy: TreeStrategy,
     pub current_path: String,
+    pub input_buffer: String,
 }
 
 impl App {
@@ -66,6 +67,7 @@ impl App {
             mode: AppMode::Browse,
             strategy: TreeStrategy::Lazy,
             current_path: String::from(""),
+            input_buffer: String::new(),
         }
     }
 }
