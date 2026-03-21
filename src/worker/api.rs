@@ -59,12 +59,6 @@ pub async fn fetch_dir(client: &Client, target: &RepoTarget, path: &str, tx: Sen
         Ok(b) => b,
     };
 
-    eprintln!(
-        "[api] status={} body={}",
-        status,
-        &body[..body.len().min(300)]
-    );
-
     if !status.is_success() {
         tx.send(WorkerEvent::Error {
             id: 0,

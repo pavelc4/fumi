@@ -1,8 +1,9 @@
+use crate::RepoTarget;
 use crate::github::GithubEntry;
 
 #[derive(Debug)]
 pub enum AppCommand {
-    FetchDir(String),
+    FetchDir { path: String, target: RepoTarget },
     Download(Vec<GithubEntry>),
     PreviewFile(GithubEntry),
     Cancel,

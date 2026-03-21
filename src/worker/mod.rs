@@ -4,10 +4,7 @@ use reqwest::Client;
 use tokio::sync::{Semaphore, mpsc::Sender};
 use tokio_util::sync::CancellationToken;
 
-use crate::{
-    app::RepoTarget,
-    event::{AppCommand, WorkerEvent},
-};
+use crate::event::{AppCommand, WorkerEvent};
 
 pub mod api;
 pub mod download;
@@ -17,31 +14,23 @@ pub struct WorkerPool {
     client: Client,
     tx: Sender<WorkerEvent>,
     root_token: CancellationToken,
-    target: Arc<RepoTarget>,
 }
 
 impl WorkerPool {
-    pub fn new(
-        concurrency: usize,
-        client: Client,
-        tx: Sender<WorkerEvent>,
-        target: RepoTarget,
-    ) -> Self {
+    pub fn new(concurrency: usize, client: Client, tx: Sender<WorkerEvent>) -> Self {
         Self {
             semaphore: Arc::new(Semaphore::new(concurrency)),
             client,
             tx,
             root_token: CancellationToken::new(),
-            target: Arc::new(target),
         }
     }
 
     pub async fn handle(&self, cmd: AppCommand, out_dir: std::path::PathBuf) {
         match cmd {
-            AppCommand::FetchDir(path) => {
+            AppCommand::FetchDir { path, target } => {
                 let client = self.client.clone();
                 let tx = self.tx.clone();
-                let target = Arc::clone(&self.target);
                 let token = self.root_token.child_token();
 
                 tokio::spawn(async move {
@@ -52,7 +41,6 @@ impl WorkerPool {
                     }
                 });
             }
-
             AppCommand::Download(entries) => {
                 for entry in entries {
                     let client = self.client.clone();

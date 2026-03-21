@@ -55,7 +55,7 @@ async fn main() -> Result<()> {
         .unwrap_or(4);
 
     let http_client = reqwest::Client::new();
-    let pool = WorkerPool::new(concurrency, http_client, event_tx, target.clone());
+    let pool = WorkerPool::new(concurrency, http_client, event_tx);
 
     let pool_arc = std::sync::Arc::new(pool);
     let pool_clone = std::sync::Arc::clone(&pool_arc);
@@ -77,7 +77,13 @@ async fn main() -> Result<()> {
 
     if !app.target.owner.is_empty() {
         app.tree.insert(String::new(), NodeState::Loading);
-        cmd_tx.send(AppCommand::FetchDir(String::new())).await.ok();
+        cmd_tx
+            .send(AppCommand::FetchDir {
+                path: String::new(),
+                target: app.target.clone(),
+            })
+            .await
+            .ok();
     } else {
         app.mode = AppMode::Input;
     }
@@ -148,14 +154,19 @@ async fn handle_key(
                             let path = entry.path.clone();
                             if !matches!(app.tree.get(&path), Some(NodeState::Loaded(_))) {
                                 app.tree.insert(path.clone(), NodeState::Loading);
-                                cmd_tx.send(AppCommand::FetchDir(path.clone())).await.ok();
+                                cmd_tx
+                                    .send(AppCommand::FetchDir {
+                                        path: path.clone(),
+                                        target: app.target.clone(),
+                                    })
+                                    .await
+                                    .ok();
                             }
                             app.current_path = path;
                             app.cursor = 0;
                             app.scroll = 0;
                         }
                         github::EntryType::File => {
-                            // treat Enter on file as preview
                             let entry = entry.clone();
                             app.mode = AppMode::Previewing;
                             cmd_tx.send(AppCommand::PreviewFile(entry)).await.ok();
@@ -163,7 +174,6 @@ async fn handle_key(
                     }
                 }
             }
-
             KeyCode::Char('h') | KeyCode::Backspace => {
                 if !app.current_path.is_empty() {
                     let parent = app
@@ -223,7 +233,13 @@ async fn handle_key(
             KeyCode::Char('r') => {
                 let path = app.current_path.clone();
                 app.tree.insert(path.clone(), NodeState::Loading);
-                cmd_tx.send(AppCommand::FetchDir(path)).await.ok();
+                cmd_tx
+                    .send(AppCommand::FetchDir {
+                        path: String::new(),
+                        target: app.target.clone(),
+                    })
+                    .await
+                    .ok();
             }
 
             _ => {}
@@ -273,7 +289,13 @@ async fn handle_key(
                     app.mode = AppMode::Browse;
 
                     app.tree.insert(String::new(), NodeState::Loading);
-                    cmd_tx.send(AppCommand::FetchDir(String::new())).await.ok();
+                    cmd_tx
+                        .send(AppCommand::FetchDir {
+                            path: String::new(),
+                            target: app.target.clone(),
+                        })
+                        .await
+                        .ok();
                 }
             }
 
@@ -315,7 +337,6 @@ fn handle_worker_event(app: &mut App, ev: WorkerEvent) {
         }
 
         WorkerEvent::Error { id: _, msg } => {
-            eprintln!("[error] {}", msg);
             app.mode = AppMode::Error(msg);
         }
     }
@@ -352,15 +373,22 @@ fn parse_args() -> Option<RepoTarget> {
 
 fn parse_input(s: &str) -> Option<RepoTarget> {
     let s = s.trim();
+    let s = s
+        .trim_start_matches("https://github.com/")
+        .trim_start_matches("http://github.com/")
+        .trim_end_matches(".git");
+
     let (repo_part, branch) = if let Some((r, b)) = s.split_once('@') {
         (r, b.to_string())
     } else {
         (s, String::from("main"))
     };
+
     let (owner, repo) = repo_part.split_once('/')?;
     if owner.is_empty() || repo.is_empty() {
         return None;
     }
+
     Some(RepoTarget {
         owner: owner.to_string(),
         repo: repo.to_string(),
