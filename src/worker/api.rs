@@ -3,9 +3,8 @@ use serde::Deserialize;
 use tokio::sync::mpsc::Sender;
 
 use crate::{
-    app::RepoTarget,
     event::WorkerEvent,
-    github::{EntryType, GithubEntry},
+    github::{EntryType, GithubEntry, RepoTarget},
 };
 
 #[derive(Debug, Deserialize)]

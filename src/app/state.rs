@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::github::GithubEntry;
+use crate::github::{GithubEntry, RepoTarget};
 
 #[derive(Debug)]
 pub enum AppMode {
@@ -32,13 +32,6 @@ pub enum TreeStrategy {
     FullTree,
 }
 
-#[derive(Debug, Clone)]
-pub struct RepoTarget {
-    pub owner: String,
-    pub repo: String,
-    pub branch: String,
-}
-
 #[derive(Debug)]
 pub struct App {
     pub target: RepoTarget,
@@ -66,7 +59,7 @@ impl App {
             preview: None,
             mode: AppMode::Browse,
             strategy: TreeStrategy::Lazy,
-            current_path: String::from(""),
+            current_path: String::new(),
             input_buffer: String::new(),
         }
     }

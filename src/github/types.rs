@@ -1,3 +1,10 @@
+#[derive(Debug, Clone)]
+pub struct RepoTarget {
+    pub owner: String,
+    pub repo: String,
+    pub branch: String,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EntryType {
     File,

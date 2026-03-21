@@ -1,2 +1,3 @@
 pub mod types;
-pub use types::{EntryType, GithubEntry, GithubError, TreeEntry};
+pub use types::{EntryType, GithubEntry, RepoTarget};
+

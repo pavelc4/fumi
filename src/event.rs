@@ -1,5 +1,5 @@
-use crate::RepoTarget;
-use crate::github::GithubEntry;
+use crate::github::{GithubEntry, RepoTarget};
+
 
 #[derive(Debug)]
 pub enum AppCommand {
