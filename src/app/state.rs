@@ -40,11 +40,19 @@ pub struct App {
     pub scroll: usize,
     pub selected: HashSet<String>,
     pub downloads: HashMap<u64, DownloadState>,
+    pub preview_scroll: u16,
     pub preview: Option<String>,
     pub mode: AppMode,
     pub strategy: TreeStrategy,
     pub current_path: String,
     pub input_buffer: String,
+    pub active_panel: ActivePanel,
+}
+
+#[derive(Debug)]
+pub enum ActivePanel {
+    FileTree,
+    Preview,
 }
 
 impl App {
@@ -54,6 +62,7 @@ impl App {
             tree: HashMap::new(),
             cursor: 0,
             scroll: 0,
+            preview_scroll: 0,
             selected: HashSet::new(),
             downloads: HashMap::new(),
             preview: None,
@@ -61,6 +70,7 @@ impl App {
             strategy: TreeStrategy::Lazy,
             current_path: String::new(),
             input_buffer: String::new(),
+            active_panel: ActivePanel::FileTree,
         }
     }
 }

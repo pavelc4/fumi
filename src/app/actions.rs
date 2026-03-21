@@ -1,6 +1,6 @@
 use crate::github::{EntryType, GithubEntry, RepoTarget};
 
-use super::state::{App, AppMode, NodeState};
+use super::state::{ActivePanel, App, AppMode, NodeState};
 
 #[derive(Debug)]
 pub enum NavAction {
@@ -12,7 +12,6 @@ pub enum NavAction {
 }
 
 impl App {
-
     pub fn move_down(&mut self) {
         let max = self.current_entries_len().saturating_sub(1);
         if self.cursor < max {
@@ -27,9 +26,15 @@ impl App {
     }
 
     pub fn enter_current(&mut self) -> NavAction {
+        if !self.current_path.is_empty() && self.cursor == 0 {
+            self.go_back();
+            return NavAction::None;
+        }
+
         let Some(entry) = self.current_entry().cloned() else {
             return NavAction::None;
         };
+
         match entry.entry_type {
             EntryType::Dir => {
                 let path = entry.path.clone();
@@ -43,6 +48,7 @@ impl App {
             }
             EntryType::File => {
                 self.mode = AppMode::Previewing;
+                self.active_panel = ActivePanel::Preview;
                 NavAction::PreviewFile(entry)
             }
         }
@@ -72,7 +78,6 @@ impl App {
         }
     }
 
-    
     pub fn start_download(&mut self) -> NavAction {
         let to_dl: Vec<GithubEntry> = self
             .tree
@@ -104,17 +109,42 @@ impl App {
         self.mode = AppMode::Browse;
     }
 
+    pub fn scroll_preview_down(&mut self) {
+        self.preview_scroll = self.preview_scroll.saturating_add(1);
+    }
+
+    pub fn scroll_preview_up(&mut self) {
+        self.preview_scroll = self.preview_scroll.saturating_sub(1);
+    }
+
+    pub fn reset_preview(&mut self) {
+        self.preview = None;
+        self.preview_scroll = 0;
+        self.active_panel = ActivePanel::FileTree;
+    }
 
     pub fn current_entries_len(&self) -> usize {
-        match self.tree.get(&self.current_path) {
+        let base = match self.tree.get(&self.current_path) {
             Some(NodeState::Loaded(e)) => e.len(),
             _ => 0,
+        };
+        if self.current_path.is_empty() {
+            base
+        } else {
+            base + 1
         }
     }
 
     pub fn current_entry(&self) -> Option<&GithubEntry> {
         match self.tree.get(&self.current_path) {
-            Some(NodeState::Loaded(entries)) => entries.get(self.cursor),
+            Some(NodeState::Loaded(entries)) => {
+                let idx = if self.current_path.is_empty() {
+                    self.cursor
+                } else {
+                    self.cursor.checked_sub(1)?
+                };
+                entries.get(idx)
+            }
             _ => None,
         }
     }
