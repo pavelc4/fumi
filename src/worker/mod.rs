@@ -41,13 +41,13 @@ impl WorkerPool {
                     }
                 });
             }
-            AppCommand::Download(entries) => {
+            AppCommand::Download { entries, repo } => {
                 for entry in entries {
                     let client = self.client.clone();
                     let tx = self.tx.clone();
                     let token = self.root_token.child_token();
                     let sem = Arc::clone(&self.semaphore);
-                    let out = out_dir.clone();
+                    let out = out_dir.join(&repo);
                     let id = next_id();
 
                     tokio::spawn(async move {

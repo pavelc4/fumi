@@ -40,9 +40,9 @@ async fn run(
         .ok_or_else(|| anyhow::anyhow!("no download_url for {}", entry.path))?;
 
     let final_path = out_dir.join(&entry.path);
-    let partial_path = final_path.with_extension(format!(
+    let partial_path = final_path.with_file_name(format!(
         "{}.fumi_partial",
-        final_path.extension().unwrap_or_default().to_string_lossy()
+        final_path.file_name().unwrap_or_default().to_string_lossy()
     ));
 
     if let Some(parent) = final_path.parent() {

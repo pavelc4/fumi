@@ -132,7 +132,13 @@ async fn dispatch_action(action: NavAction, app: &App, cmd_tx: &Sender<AppComman
             cmd_tx.send(AppCommand::PreviewFile(entry)).await.ok();
         }
         NavAction::Download(entries) => {
-            cmd_tx.send(AppCommand::Download(entries)).await.ok();
+            cmd_tx
+                .send(AppCommand::Download {
+                    entries,
+                    repo: app.target.repo.clone(),
+                })
+                .await
+                .ok();
         }
         NavAction::Quit | NavAction::None => {}
     }
