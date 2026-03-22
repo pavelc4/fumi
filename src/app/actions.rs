@@ -121,6 +121,7 @@ impl App {
         self.preview = None;
         self.preview_scroll = 0;
         self.active_panel = ActivePanel::FileTree;
+        self.mode = AppMode::Browse;
     }
 
     pub fn current_entries_len(&self) -> usize {

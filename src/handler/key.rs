@@ -6,20 +6,14 @@ use crate::app::{App, AppMode, NavAction};
 use crate::event::AppCommand;
 use crate::github::RepoTarget;
 
-pub async fn handle_key(
-    app: &mut App,
-    key: KeyEvent,
-    cmd_tx: &Sender<AppCommand>,
-) -> Result<bool> {
-    use crossterm::event::{KeyCode, KeyModifiers};
+pub async fn handle_key(app: &mut App, key: KeyEvent, cmd_tx: &Sender<AppCommand>) -> Result<bool> {
     use AppMode::*;
+    use crossterm::event::{KeyCode, KeyModifiers};
 
     match &app.mode {
         Browse | Downloading => match key.code {
             KeyCode::Char('q') | KeyCode::Esc => return Ok(true),
-            KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                return Ok(true)
-            }
+            KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => return Ok(true),
 
             KeyCode::Char('b') => app.mode = AppMode::Input,
 
@@ -64,10 +58,11 @@ pub async fn handle_key(
         },
 
         Previewing => match key.code {
-            KeyCode::Esc | KeyCode::Char('q') => {
-                app.mode = AppMode::Browse;
-                app.preview = None;
+            KeyCode::Esc | KeyCode::Char('q') | KeyCode::Char('h') => {
+                app.reset_preview();
             }
+            KeyCode::Char('j') | KeyCode::Down => app.scroll_preview_down(),
+            KeyCode::Char('k') | KeyCode::Up => app.scroll_preview_up(),
             _ => {}
         },
 
@@ -120,11 +115,7 @@ async fn dispatch_nav(app: &mut App, cmd_tx: &Sender<AppCommand>) -> Result<()> 
     dispatch_action(action, app, cmd_tx).await
 }
 
-async fn dispatch_action(
-    action: NavAction,
-    app: &App,
-    cmd_tx: &Sender<AppCommand>,
-) -> Result<()> {
+async fn dispatch_action(action: NavAction, app: &App, cmd_tx: &Sender<AppCommand>) -> Result<()> {
     match action {
         NavAction::FetchDir(path) => {
             if !matches!(app.tree.get(&path), Some(crate::app::NodeState::Loaded(_))) {
